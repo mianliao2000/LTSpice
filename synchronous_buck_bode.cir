@@ -1,0 +1,44 @@
+* Switching buck loop-gain extraction companion for PyLTSpice automation
+* A small sinusoidal perturbation is added to the voltage reference. Python
+* extracts the closed-loop response from the final cycles and converts
+* H=Vout/Vref to loop gain T=H/(1-H).
+.param Vdc=12 Vout=5 fsw=250k Ts={1/fsw} dead=20n
+.param L=30u Rl=50m Cout=15u Rc=7.5m Rload=5
+.param Kp=0.166507 Ki=1419.38 Kd=1.586e-6 Kf=156357
+.param fpert=1k pert_amp=2m tstop=6m maxstep=100n
+.param vout_ic=Vout il_ic={Vout/Rload}
+
+Vdc vin 0 {Vdc}
+Bramp ramp 0 V={time/Ts-floor(time/Ts)}
+Bpert refpert 0 V={pert_amp*sin(2*pi*fpert*time)}
+
+S_hi vin sw gate_hi 0 swmod
+S_lo sw 0 gate_lo 0 swmod
+D_hi sw vin dbody
+D_lo 0 sw dbody
+Rswleak sw 0 1Meg
+.model swmod SW(Ron=5m Roff=20Meg Vt=2.5 Vh=0.2)
+.model dbody D(Is=1n Rs=20m Cjo=10p)
+
+L1 sw lx {L} ic={il_ic}
+R_L lx vout {Rl}
+R_ESR ncap vout {Rc}
+Cout ncap 0 {Cout} ic={vout_ic}
+Rfixed vout 0 {Rload}
+
+Berr err 0 V={Vout + V(refpert) - V(vout)}
+Cint int 0 1 ic={Vout/Vdc}
+Rint int 0 1G
+Bint 0 int I={Ki*V(err)}
+Cef ef 0 1 ic=0
+Ref ef 0 1G
+Bef 0 ef I={Kf*(V(err)-V(ef))}
+Bctrl ctrl 0 V={limit(Kp*V(err)+V(int)+Kd*Kf*(V(err)-V(ef)), 0.02, 0.98)}
+Bgatehi gate_hi 0 V={if(V(ctrl)>V(ramp)+dead/Ts, 10, 0)}
+Bgatelo gate_lo 0 V={if(V(ctrl)<V(ramp)-dead/Ts, 10, 0)}
+
+.save V(vout)
+.options plotwinsize=0 method=gear reltol=0.003 abstol=1e-8 vntol=1e-5
+.ic V(vout)={Vout} V(ncap)={Vout} V(int)={Vout/Vdc} V(ef)=0
+.tran 0 {tstop} 0 {maxstep} uic
+.end

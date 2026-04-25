@@ -1,0 +1,14 @@
+* Averaged loop-gain companion for LTspice AC analysis
+.param Vdc=12 L=30u Rl=50m Cout=15u Rc=7.5m Rload=5
+.param Kp=0.166507 Ki=1419.38 Kd=1.586e-6 Kf=156357
+.param fstart=1k fstop=100k bode_points=51
+
+Vac in 0 AC 1
+Epid comp 0 LAPLACE {V(in)} {Kp + Ki/s + Kd*Kf*s/(s+Kf)}
+Eplant loop 0 LAPLACE {V(comp)} {Vdc*Rload*(1+s*Rc*Cout)/(Rload+Rl+s*(L+Cout*Rload*Rc+Cout*Rload*Rl+Cout*Rc*Rl)+s*s*Cout*L*(Rload+Rc))}
+Rloop loop 0 1G
+
+.save V(loop)
+.options plotwinsize=0
+.ac dec {bode_points} {fstart} {fstop}
+.end
