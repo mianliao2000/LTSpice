@@ -60,6 +60,18 @@ Required only when using the related provider:
 
 ## Usage
 
+Open a terminal in this project folder first:
+
+```powershell
+cd C:\Users\liaom\Documents\Github\ltspice-visualization\ltspice
+```
+
+If you downloaded the project somewhere else, replace the path above with your local project path.
+
+### Run Without A Large Model
+
+Use these commands when you only want the rule-based converter and local visual scorer. No API key is required.
+
 Generate an LTspice schematic:
 
 ```powershell
@@ -90,16 +102,51 @@ Force a topology when annotations are absent or ambiguous:
 python .\netlist_to_canonical_asc.py .\input.cir --topology synchronous_buck
 ```
 
-Run OpenAI vision review:
+### Run With A Large Model
+
+Use these commands when you want the generated preview to be reviewed by a vision-capable large model.
+
+First create your local environment file:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Then open `.env` and fill in the API key for the provider you want to use.
+
+For OpenAI, set:
+
+```dotenv
+OPENAI_API_KEY=your_openai_api_key_here
+VISION_PROVIDER=openai
+VISION_REVIEW_MODEL=gpt-4.1
+```
+
+Then run:
 
 ```powershell
 python .\netlist_to_canonical_asc.py .\synchronous_buck_tran.cir --preview .\review.png --vision-review --vision-provider openai
 ```
 
-Run MiniMax vision review:
+For MiniMax, set:
+
+```dotenv
+MINIMAX_API_KEY=your_minimax_api_key_here
+MINIMAX_API_HOST=https://api.minimax.io
+VISION_PROVIDER=minimax
+VISION_REVIEW_MODEL=mmx-vision
+```
+
+Make sure the MiniMax `mmx` CLI is installed and available in your terminal, then run:
 
 ```powershell
 python .\netlist_to_canonical_asc.py .\synchronous_buck_tran.cir --preview .\review.png --vision-review --vision-provider minimax
+```
+
+You can combine large-model review with the local visual layout agent:
+
+```powershell
+python .\netlist_to_canonical_asc.py .\synchronous_buck_tran.cir -o .\synchronous_buck_canonical.asc --visual-agent --preview .\review.png --visual-report .\synchronous_buck_visual_report.json --vision-review --vision-provider openai
 ```
 
 ## Netlist Annotations
